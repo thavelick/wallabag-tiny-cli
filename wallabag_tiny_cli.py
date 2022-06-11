@@ -36,13 +36,12 @@ class Wallabag:
     """
     A class to interact with the wallabag api.
     """
-
     def __init__(self, instance_url: str, token: str):
         self.instance_url = instance_url
         self.token = token
 
-    @staticmethod
-    def get_oauth_token_and_expiration_from_api(instance_url: str) -> dict:
+    @classmethod
+    def get_oauth_token_and_expiration_from_api(cls, instance_url: str) -> dict:
         """
         Call out to the api to get an oauth token for future requests.
         Args:
@@ -50,7 +49,6 @@ class Wallabag:
         Returns:
             A dict containing the token and expiration as a unix timestamp.
         """
-
         data = {
             'grant_type': 'password',
             'client_id': get_env_var('CLIENT_ID'),
@@ -58,14 +56,7 @@ class Wallabag:
             'username': get_env_var('USERNAME'),
             'password': get_env_var('PASSWORD')
         }
-        request = Request(
-            url=f'{instance_url}/oauth/v2/token',
-            data=json.dumps(data).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
-        )
-
-        with urlopen(request) as response:
-            response_data = json.loads(response.read().decode('utf-8'))
+        response_data = cls._post(f'{instance_url}/oauth/v2/token', data)
 
         current_unix_timestamp = int(round(time.time()))
         expiration_timestamp = current_unix_timestamp + response_data['expires_in']
@@ -75,24 +66,27 @@ class Wallabag:
         }
 
     def add(self, url: str):
-        """
-        Add an entry to wallabag.
-        Args:
-            url: The url to add .
-        """
-        data = {
-            'url': url,
+        """Add an url to wallabag."""
+        data = {'url': url}
+        self._post(f'{self.instance_url}/api/entries', data, token=self.token)
+
+    @staticmethod
+    def _post(url: str, data: dict, token=None) -> dict:
+        """Make a post request to the given url."""
+        headers = {
+            'Content-Type': 'application/json',
         }
+        if token:
+            headers['Authorization'] = f'Bearer {token}'
+
         request = Request(
-            url=f'{self.instance_url}/api/entries.json',
+            url=url,
             data=json.dumps(data).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {self.token}'
-            }
+            headers=headers
         )
-        with urlopen(request) :
-            pass
+        with urlopen(request) as response:
+            return json.loads(response.read().decode('utf-8'))
+
 
 def get_oauth_token(instance_url: str) -> str:
     """
@@ -107,7 +101,7 @@ def get_oauth_token(instance_url: str) -> str:
     """
 
     token_data = {'expiration': 0}
-    token_cache_file = 'token.json'
+    token_cache_file = './tmp/wallabag_token.json'
 
     # load data from the cache file if it exists
     if os.path.exists(token_cache_file):
@@ -129,7 +123,6 @@ def get_wallabag():
 
 
 if __name__ == '__main__':
-
     args = sys.argv
     if len(args) < 2:
         print_usage_and_exit()
