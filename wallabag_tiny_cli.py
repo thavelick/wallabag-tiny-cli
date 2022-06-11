@@ -23,13 +23,14 @@ def get_env_var(var, default=None):
     return value
 
 
-def print_usage_and_exit():
-    """Print the usage and exit."""
-    print("""
-    Usage:
-        wallabag_tiny_cli.py add <url>
-    """)
-    sys.exit(1)
+def print_usage_and_exit_unless(*condition: bool):
+    """Print the usage and exit unless condition is met."""
+    if not condition:
+        print("""
+        Usage:
+            wallabag_tiny_cli.py add <url>
+        """)
+        sys.exit(1)
 
 
 class Wallabag:
@@ -108,32 +109,28 @@ def get_oauth_token(wallabag_url: str) -> str:
             token_data = json.load(token_file)
 
     if token_data['expiration'] < int(round(time.time())):
-        token_data = Wallabag.get_oauth_token_and_expiration_from_api(instance_url)
+        token_data = Wallabag.get_oauth_token_and_expiration_from_api(wallabag_url)
         with open(token_cache_file, 'w', encoding='utf-8')  as token_file:
             json.dump(token_data, token_file)
     return str(token_data['token'])
 
 
 def get_wallabag():
-    """Get an interface to the wallabag instance."""
-    instance_url = get_env_var('URL', 'https://app.wallabag.it')
-    token = get_oauth_token(instance_url)
-    return Wallabag(instance_url, token)
+    """Get an object for a wallabag server."""
+    wallabag_url = get_env_var('URL', 'https://app.wallabag.it')
+    token = get_oauth_token(wallabag_url)
+    return Wallabag(wallabag_url, token)
 
 
 if __name__ == '__main__':
     args = sys.argv
-    if len(args) < 2:
-        print_usage_and_exit()
+    print_usage_and_exit_unless(len(args) > 2)
 
-    valid_commands = ['add']
     command, command_args = args[1], args[2:]
-    if command not in valid_commands:
-        print_usage_and_exit()
+    print_usage_and_exit_unless(command in ['add'])
 
     wallabag = get_wallabag()
     command_method = getattr(wallabag, command)
-
-    if len(command_args) != len(signature(command_method).parameters):
-        print_usage_and_exit()
+    needed_parameter_count = len(signature(command_method).parameters)
+    print_usage_and_exit_unless(needed_parameter_count == len(command_args))
     command_method(*command_args)
