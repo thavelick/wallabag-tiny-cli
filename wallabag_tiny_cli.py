@@ -18,7 +18,7 @@ def get_env_var(var, default=None):
     """
     value = os.environ.get(f'WALLABAG_{var}', default)
     if not value:
-        print(f'Missing required environment variable: {var}')
+        print(f'Missing required environment variable: WALLABAG_{var}')
         sys.exit(1)
     return value
 
@@ -36,16 +36,16 @@ class Wallabag:
     """
     A class to interact with the wallabag api.
     """
-    def __init__(self, instance_url: str, token: str):
-        self.instance_url = instance_url
+    def __init__(self, wallabag_url: str, token: str):
+        self.wallabag_url = wallabag_url
         self.token = token
 
     @classmethod
-    def get_oauth_token_and_expiration_from_api(cls, instance_url: str) -> dict:
+    def get_oauth_token_and_expiration_from_api(cls, wallabag_url: str) -> dict:
         """
         Call out to the api to get an oauth token for future requests.
         Args:
-            instance_url: The url of the instance to get the token for.
+            wallabag_url: The url of the wallabag server to get the token for.
         Returns:
             A dict containing the token and expiration as a unix timestamp.
         """
@@ -56,7 +56,7 @@ class Wallabag:
             'username': get_env_var('USERNAME'),
             'password': get_env_var('PASSWORD')
         }
-        response_data = cls._post(f'{instance_url}/oauth/v2/token', data)
+        response_data = cls._post(f'{wallabag_url}/oauth/v2/token', data)
 
         current_unix_timestamp = int(round(time.time()))
         expiration_timestamp = current_unix_timestamp + response_data['expires_in']
@@ -68,7 +68,7 @@ class Wallabag:
     def add(self, url: str):
         """Add an url to wallabag."""
         data = {'url': url}
-        self._post(f'{self.instance_url}/api/entries', data, token=self.token)
+        self._post(f'{self.wallabag_url}/api/entries', data, token=self.token)
 
     @staticmethod
     def _post(url: str, data: dict, token=None) -> dict:
@@ -88,18 +88,17 @@ class Wallabag:
             return json.loads(response.read().decode('utf-8'))
 
 
-def get_oauth_token(instance_url: str) -> str:
+def get_oauth_token(wallabag_url: str) -> str:
     """
-    Get the oauth token for the given instance.
+    Get the oauth token for a wallabag server.
 
     try to load the token from the file system. If the token is expired,
     get a new one from the api and save that to the file system.
     Args:
-        instance_url: The url of the instance to get the token for.
+        wallabag_url: The url of the wallabag server to get the token for.
     Returns:
         The oauth token.
     """
-
     token_data = {'expiration': 0}
     token_cache_file = '/tmp/wallabag_token.json'
 
