@@ -101,7 +101,7 @@ def get_oauth_token(instance_url: str) -> str:
     """
 
     token_data = {'expiration': 0}
-    token_cache_file = './tmp/wallabag_token.json'
+    token_cache_file = '/tmp/wallabag_token.json'
 
     # load data from the cache file if it exists
     if os.path.exists(token_cache_file):
@@ -110,7 +110,7 @@ def get_oauth_token(instance_url: str) -> str:
 
     if token_data['expiration'] < int(round(time.time())):
         token_data = Wallabag.get_oauth_token_and_expiration_from_api(instance_url)
-        with open('token.json', 'w', encoding='utf-8')  as token_file:
+        with open(token_cache_file, 'w', encoding='utf-8')  as token_file:
             json.dump(token_data, token_file)
     return str(token_data['token'])
 

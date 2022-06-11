@@ -1,6 +1,6 @@
 # Wallabag Tiny CLI
 
-A minimalistic CLI to add articles on a Wallabag instance.
+A minimal CLI to add articles on a Wallabag instance.
 
 ## Installation
 
