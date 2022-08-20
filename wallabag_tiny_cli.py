@@ -71,8 +71,12 @@ class Wallabag:
 
     def add(self, url: str):
         """Add an url to wallabag."""
-        data = {'url': url}
-        self._post(f'{self.wallabag_url}/api/entries', data, token=self.token)
+        request_payload = {"url": url}
+        response = self._post(
+            f"{self.wallabag_url}/api/entries", request_payload, token=self.token
+        )
+        name = response.get("title", url)
+        print(f'Added "{name}" to wallabag')
 
     @staticmethod
     def _post(url: str, data: dict, token=None) -> dict:
